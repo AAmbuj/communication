@@ -124,6 +124,10 @@ html_theme_options = {
 html_static_path = ['_static']
 html_css_files = [
     'css/default_custom.css',
+    'css/version_flyout.css',
+]
+html_js_files = [
+    'js/version_flyout.js',
 ]
 
 # -- Breathe configuration --
