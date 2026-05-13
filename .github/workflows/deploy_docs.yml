@@ -95,14 +95,15 @@ jobs:
           cp docs/sphinx/_static/css/version_flyout.css docs_output/_static/css/
           cp docs/sphinx/_static/js/version_flyout.js docs_output/_static/js/
           # Inject version flyout CSS and JS into all HTML files
-          # Use absolute path based on deployment destination
-          VERSION="${{ steps.version.outputs.version }}"
+          # Use shared path so all versions use the same files
           REPO_NAME="${{ github.event.repository.name }}"
-          BASE_PATH="/${REPO_NAME}/${VERSION}"
+          MARKER="<!-- version-flyout-injected -->"
+          CSS_TAG="<link rel=\"stylesheet\" type=\"text/css\" href=\"/${REPO_NAME}/_shared/css/version_flyout.css\" />"
+          JS_TAG="<script src=\"/${REPO_NAME}/_shared/js/version_flyout.js\"></script>"
           find docs_output -name '*.html' -exec sed -i \
-            "s|</head>|<link rel=\"stylesheet\" type=\"text/css\" href=\"${BASE_PATH}/_static/css/version_flyout.css\" />\n</head>|" {} +
+            "s|</head>|${CSS_TAG}\n${MARKER}\n</head>|" {} +
           find docs_output -name '*.html' -exec sed -i \
-            "s|</body>|<script src=\"${BASE_PATH}/_static/js/version_flyout.js\"></script>\n</body>|" {} +
+            "s|</body>|${JS_TAG}\n</body>|" {} +
 
       - name: Include switcher.json in output
         run: |
@@ -181,6 +182,7 @@ jobs:
 
           # Build switcher.json from existing version directories
           REPO_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          REPO_NAME="${{ github.event.repository.name }}"
 
           # Start building the JSON array
           echo "[" > gh-pages/switcher.json
@@ -202,6 +204,32 @@ jobs:
           # Remove trailing comma and close array
           sed -i '$ s/,$//' gh-pages/switcher.json
           echo "]" >> gh-pages/switcher.json
+
+      - name: Inject version flyout into all versions
+        run: |
+          REPO_NAME="${{ github.event.repository.name }}"
+
+          # Copy flyout CSS/JS to a shared location on gh-pages
+          mkdir -p gh-pages/_shared/css gh-pages/_shared/js
+          cp docs/sphinx/_static/css/version_flyout.css gh-pages/_shared/css/
+          cp docs/sphinx/_static/js/version_flyout.js gh-pages/_shared/js/
+
+          # Inject flyout tags into ALL version directories (latest, stable, v*, preview/*)
+          # Use a marker comment to avoid duplicate injection
+          MARKER="<!-- version-flyout-injected -->"
+          CSS_TAG="<link rel=\"stylesheet\" type=\"text/css\" href=\"/${REPO_NAME}/_shared/css/version_flyout.css\" />"
+          JS_TAG="<script src=\"/${REPO_NAME}/_shared/js/version_flyout.js\"></script>"
+
+          find gh-pages -name '*.html' -type f | while read -r htmlfile; do
+            # Skip if already injected
+            if grep -q "version-flyout-injected" "$htmlfile"; then
+              continue
+            fi
+            # Inject CSS before </head> and JS before </body>
+            sed -i "s|</head>|${CSS_TAG}\n${MARKER}\n</head>|" "$htmlfile"
+            sed -i "s|</body>|${JS_TAG}\n</body>|" "$htmlfile"
+          done
+          echo "Flyout injected into all version pages"
 
       - name: Deploy updated root files
         uses: peaceiris/actions-gh-pages@v4
