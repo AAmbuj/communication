@@ -116,7 +116,7 @@ html_theme_options = {
     # Version switcher configuration
     'switcher': {
         'json_url': f'{GITHUB_PAGES_URL}/switcher.json',
-        'version_match': os.environ.get('DOCS_VERSION', 'preview/amsh_github_io_for_com'),
+        'version_match': os.environ.get('DOCS_VERSION', 'latest'),
     },
 }
 
