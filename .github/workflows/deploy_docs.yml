@@ -16,7 +16,7 @@ name: Deploy Documentation to GitHub Pages
 
 on:
   push:
-    branches: [main, amsh_github_io_for_com]
+    branches: [main]
     tags: ['v*']
   pull_request:
     branches: [main]
@@ -88,6 +88,19 @@ jobs:
           cp -r bazel-out/k8-fastbuild/bin/docs/sphinx/sphinx_doc/html/* docs_output/ || true
           # Prevent Jekyll from ignoring _static directories
           touch docs_output/.nojekyll
+          # Copy custom static files that Bazel sandbox may not include
+          mkdir -p docs_output/_static/css docs_output/_static/js
+          cp docs/sphinx/_static/css/version_flyout.css docs_output/_static/css/
+          cp docs/sphinx/_static/js/version_flyout.js docs_output/_static/js/
+          # Inject version flyout CSS and JS into all HTML files
+          # Use absolute path based on deployment destination
+          VERSION="${{ steps.version.outputs.version }}"
+          REPO_NAME="${{ github.event.repository.name }}"
+          BASE_PATH="/${REPO_NAME}/${VERSION}"
+          find docs_output -name '*.html' -exec sed -i \
+            "s|</head>|<link rel=\"stylesheet\" type=\"text/css\" href=\"${BASE_PATH}/_static/css/version_flyout.css\" />\n</head>|" {} +
+          find docs_output -name '*.html' -exec sed -i \
+            "s|</body>|<script src=\"${BASE_PATH}/_static/js/version_flyout.js\"></script>\n</body>|" {} +
 
       - name: Include switcher.json in output
         run: |
@@ -95,8 +108,7 @@ jobs:
           cat > docs_output/switcher.json << EOF
           [
             {"name": "latest", "version": "latest", "url": "${REPO_URL}/latest/"},
-            {"name": "stable", "version": "stable", "url": "${REPO_URL}/stable/"},
-            {"name": "preview", "version": "preview/amsh_github_io_for_com", "url": "${REPO_URL}/preview/amsh_github_io_for_com/"}
+            {"name": "stable", "version": "stable", "url": "${REPO_URL}/stable/"}
           ]
           EOF
           # Also prepare a root-level copy
