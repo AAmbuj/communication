@@ -86,6 +86,8 @@ jobs:
           mkdir -p docs_output
           cp -r bazel-bin/docs/sphinx/sphinx_doc/html/* docs_output/ || \
           cp -r bazel-out/k8-fastbuild/bin/docs/sphinx/sphinx_doc/html/* docs_output/ || true
+          # Prevent Jekyll from ignoring _static directories
+          touch docs_output/.nojekyll
 
       - name: Include switcher.json in output
         run: |
@@ -101,6 +103,7 @@ jobs:
           mkdir -p root_deploy
           cp docs_output/switcher.json root_deploy/switcher.json
           cp docs/sphinx/_gh_pages/index.html root_deploy/index.html
+          touch root_deploy/.nojekyll
 
       - name: Deploy switcher.json and index.html to root
         if: github.event_name != 'pull_request'
