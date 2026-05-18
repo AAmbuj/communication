@@ -1,0 +1,86 @@
+# *******************************************************************************
+# Copyright (c) 2026 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Apache License Version 2.0 which is available at
+# https://www.apache.org/licenses/LICENSE-2.0
+#
+# SPDX-License-Identifier: Apache-2.0
+# *******************************************************************************
+
+# Non-voting code coverage check.
+# Runs on PRs and main push but does NOT block merging (continue-on-error: true).
+name: Code Coverage
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: coverage-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  ANDROID_HOME: ""
+  ANDROID_SDK_ROOT: ""
+
+jobs:
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-24.04
+    continue-on-error: true  # non-voting: does not block PR merging
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+
+      - name: Free disk space
+        uses: eclipse-score/more-disk-space@v1
+        with:
+          level: 4
+
+      - name: Install lcov
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lcov
+
+      - name: Set up Bazel
+        uses: bazel-contrib/setup-bazel@0.14.0
+        with:
+          bazelisk-cache: true
+          disk-cache: "coverage"
+          repository-cache: true
+          cache-save: ${{ github.event_name != 'pull_request' }}
+
+      - name: Allow linux-sandbox
+        uses: ./actions/unblock_user_namespace_for_linux_sandbox
+
+      - name: Run Coverage
+        run: |
+          bazel coverage //... --build_tests_only
+
+      - name: Generate HTML Coverage Report
+        run: |
+          genhtml "$(bazel info output_path)/_coverage/_coverage_report.dat" \
+            -o=coverage_html \
+            --show-details \
+            --legend \
+            --function-coverage \
+            --branch-coverage \
+            --ignore-errors category,inconsistent
+
+      - name: Upload Coverage Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage_html/
+          retention-days: 7
