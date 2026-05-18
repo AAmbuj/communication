@@ -53,12 +53,11 @@ jobs:
           sudo apt-get install -y lcov
 
       - name: Set up Bazel
-        uses: bazel-contrib/setup-bazel@0.14.0
+        uses: bazel-contrib/setup-bazel@0.18.0
         with:
           bazelisk-cache: true
           disk-cache: "coverage"
           repository-cache: true
-          cache-save: ${{ github.event_name != 'pull_request' }}
 
       - name: Allow linux-sandbox
         uses: ./actions/unblock_user_namespace_for_linux_sandbox
