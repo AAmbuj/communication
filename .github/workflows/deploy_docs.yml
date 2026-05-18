@@ -32,7 +32,7 @@ permissions:
 
 concurrency:
   group: "pages"
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
   ANDROID_HOME: ""
@@ -135,7 +135,7 @@ jobs:
           cp -a docs_output/. "publish/${VERSION}/"
 
           # Download previously released versions
-          for tag in $(gh release list --limit 50 --json tagName -q '.[].tagName' | grep '^v'); do
+          for tag in $(gh api "repos/${{ github.repository }}/releases" --paginate --jq '.[].tag_name' | grep '^v'); do
             if [ "${tag}" = "${VERSION}" ]; then
               continue
             fi
