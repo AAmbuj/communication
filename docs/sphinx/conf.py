@@ -87,7 +87,7 @@ html_theme_options = {
     'navbar_align': 'left',
     'navbar_start': ['navbar-logo'],
     'navbar_center': ['navbar-nav'],
-    'navbar_end': ['version-switcher', 'navbar-icon-links', 'theme-switcher'],
+    'navbar_end': ['navbar-icon-links', 'theme-switcher'],
 
     # Search configuration
     'search_bar_text': 'Search documentation...',
