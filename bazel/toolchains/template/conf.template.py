@@ -118,11 +118,6 @@ html_theme_options = {
         }
     ],
 
-    # Version switcher - reads switcher.json deployed at the GitHub Pages root
-    'switcher': {
-        'json_url': f'{GITHUB_PAGES_URL}/switcher.json',
-        'version_match': os.environ.get('DOCS_VERSION', 'latest'),
-    },
 }
 
 
