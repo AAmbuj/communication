@@ -141,16 +141,6 @@ html .pst-navbar-icon:hover {
     border-bottom: 1px solid var(--pst-color-primary);
 }
 
-/* Version Switcher Button */
-button.btn.version-switcher__button {
-    color: #FFF;
-}
-
-/* Version Switcher Menu */
-.version-switcher__menu a.list-group-item {
-    color: #FFF;
-}
-
 /* Primary navigation styles */
 .navbar-brand {
     color: #FFFFFF ;
