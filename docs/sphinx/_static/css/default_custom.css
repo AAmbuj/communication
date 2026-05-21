@@ -79,16 +79,16 @@ html[data-theme="dark"] {
 /* ============================================================================
  * Navigation Styles
  * ============================================================================ */
-/* Search box in navbar/header - always light background with dark text */
+/* Search box in navbar/header */
 .bd-header input.search-input,
 .bd-header .search-button-field,
 .bd-header input[type="search"],
 .navbar input.search-input,
 .navbar .search-button-field,
 .navbar input[type="search"] {
-    color: #333333 ;
-    background-color: #ffffff ;
-    border: none ;
+    color: #FFFFFF !important;
+    background-color: transparent !important;
+    border: none !important;
 }
 
 .bd-header input.search-input::placeholder,
