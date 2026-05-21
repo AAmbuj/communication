@@ -28,6 +28,12 @@ from sphinx.util import logging
 
 logger = logging.getLogger(__name__)
 
+# GitHub Pages base URL - set via DOCS_BASE_URL env var in CI
+GITHUB_PAGES_URL = os.environ.get(
+    "DOCS_BASE_URL",
+    "https://eclipse-score.github.io/communication",
+)
+
 # Project configuration - {PROJECT_NAME} will be replaced by the module name during build
 project = "{PROJECT_NAME}"
 author = "S-CORE"
@@ -86,7 +92,7 @@ html_theme_options = {
     'navbar_align': 'left',
     'navbar_start': ['navbar-logo'],
     'navbar_center': ['navbar-nav'],
-    'navbar_end': ['navbar-icon-links', 'theme-switcher'],
+    'navbar_end': ['version-switcher', 'navbar-icon-links', 'theme-switcher'],
 
     # Search configuration
     'search_bar_text': 'Search documentation...',
@@ -111,11 +117,37 @@ html_theme_options = {
             'icon': 'fab fa-github',
         }
     ],
+
+    # Version switcher - reads switcher.json deployed at the GitHub Pages root
+    'switcher': {
+        'json_url': f'{GITHUB_PAGES_URL}/switcher.json',
+        'version_match': os.environ.get('DOCS_VERSION', 'latest'),
+    },
 }
 
 
 # Enable numref for cross-references
 numfig = True
+
+# Static assets and custom CSS
+# html_static_path is relative to confdir (where this conf.py lives).
+# In a local build confdir == the docs source dir, so '_static' is a direct
+# sibling.  In the Bazel sandbox the generated conf.py sits one level above the
+# actual source tree (sphinx_doc/conf.py vs sphinx_doc/docs/sphinx/_static),
+# so we search for the _static directory instead of hard-coding the path.
+_conf_dir = Path(__file__).parent
+_static_local = _conf_dir / "_static"
+if _static_local.exists():
+    html_static_path = ["_static"]
+else:
+    _static_found = next(
+        (p for p in _conf_dir.rglob("_static") if p.is_dir()), None
+    )
+    html_static_path = [str(_static_found)] if _static_found else []
+
+html_css_files = [
+    'css/default_custom.css',
+]
 
 # Load external needs and log configuration
 needs_external_needs = bazel_sphinx_needs.load_external_needs()
