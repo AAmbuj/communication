@@ -31,6 +31,15 @@ filegroup(
     srcs = glob(["_static/**/*"]),
 )
 
+# Custom CSS exposed so it can be added to the sphinx_build runfiles and
+# therefore be available to sub-doc builds (e.g. dependable_element docs)
+# that are built in a separate Bazel sandbox.
+filegroup(
+    name = "custom_css",
+    srcs = ["_static/css/default_custom.css"],
+    visibility = ["//bazel/toolchains:__pkg__"],
+)
+
 # Generate RST files from @api tagged items using custom Starlark rule
 generate_api_rst(
     name = "generate_api_rst",
