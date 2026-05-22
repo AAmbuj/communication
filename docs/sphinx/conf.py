@@ -106,6 +106,7 @@ html_theme_options = {
             'icon': 'fab fa-github',
         }
     ],
+
 }
 
 # Add custom styling
@@ -113,6 +114,8 @@ html_static_path = ['_static']
 html_css_files = [
     'css/default_custom.css',
 ]
+# Note: version_flyout.css and version_flyout.js are injected by the
+# deploy workflow via _shared/ paths so they load once across all versions.
 
 # -- Breathe configuration --
 # Doxygen XML output path (provided by sphinx_docs_library)
