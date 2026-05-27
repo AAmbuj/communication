@@ -261,6 +261,49 @@ class RSTGenerator: # pylint: disable=too-few-public-methods
         self.project_name = project_name
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        self._documented_template_classes: set = set()
+
+    @staticmethod
+    def _extract_template_class(base_name: str) -> Optional[str]:
+        """Detect if a function is a member of a template class.
+
+        If the qualified name contains '<' before the last '::', the
+        function belongs to a template class.  Return the class name
+        without template parameters so it can be used with the
+        doxygenclass directive.
+
+        Args:
+            base_name: Fully qualified function name without parameters,
+                       e.g. "ns::Class<T>::Method"
+
+        Returns:
+            The qualified class name (without template args) if the
+            function is a template-class member, otherwise None.
+        """
+        # Must be a qualified member (contains ::)
+        if '::' not in base_name:
+            return None
+
+        # Split off the member name (last :: segment)
+        last_sep = base_name.rfind('::')
+        class_part = base_name[:last_sep]
+
+        # Check if the class portion contains template parameters
+        if '<' not in class_part:
+            return None
+
+        # Strip template parameters to get the raw class name for the
+        # doxygenclass directive.  Handle nested templates by removing
+        # outermost balanced angle brackets from each segment.
+        segments = class_part.split('::')
+        clean_segments = []
+        for seg in segments:
+            idx = seg.find('<')
+            if idx != -1:
+                seg = seg[:idx]
+            clean_segments.append(seg)
+
+        return '::'.join(clean_segments)
 
     def generate_rst_files(
             self, api_items: Dict[str, List[Dict[str, str]]]
@@ -508,6 +551,24 @@ This section contains all {category} tagged with @api.
 
             # Use the kind to determine the appropriate directive
             if kind in ('function', 'friend'):
+                # Check if this is a member of a template class.
+                # Template class members often lack standalone XML
+                # entries in Doxygen output, so Breathe cannot find
+                # them via doxygenfunction. Use doxygenclass instead.
+                template_class = self._extract_template_class(
+                    base_name
+                )
+                if template_class is not None:
+                    if template_class in self._documented_template_classes:
+                        return ""
+                    self._documented_template_classes.add(template_class)
+                    return f"""
+.. doxygenclass:: {template_class}
+   :members:
+   :undoc-members:
+
+"""
+
                 # For functions and friend functions, always use signature
                 # if available for better precision
                 # This helps Breathe resolve overloaded functions,
