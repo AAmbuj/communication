@@ -52,8 +52,21 @@ if [[ -n "${RUN_ID}" ]]; then
             --name nightly-quality-reports \
             --dir "${TEMP_DIR}" \
             --repo "${REPOSITORY}"; then
-        cp -r "${TEMP_DIR}/nightly-quality-reports/." "${PUBLISH_DIR}/"
-        echo "Quality reports bundled into ${PUBLISH_DIR}/"
+        # gh CLI extraction layout can vary:
+        #   1) ${TEMP_DIR}/nightly-quality-reports/<files>
+        #   2) ${TEMP_DIR}/<files>
+        # Handle both layouts defensively.
+        SOURCE_DIR="${TEMP_DIR}/nightly-quality-reports"
+        if [[ ! -d "${SOURCE_DIR}" ]]; then
+            SOURCE_DIR="${TEMP_DIR}"
+        fi
+
+        if find "${SOURCE_DIR}" -mindepth 1 -print -quit | grep -q .; then
+            cp -r "${SOURCE_DIR}/." "${PUBLISH_DIR}/"
+            echo "Quality reports bundled into ${PUBLISH_DIR}/"
+        else
+            echo "Downloaded artifact appears empty for run ${RUN_ID} — skipping."
+        fi
     else
         echo "Quality artifact not available for run ${RUN_ID} — skipping."
     fi
