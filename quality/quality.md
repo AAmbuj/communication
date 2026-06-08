@@ -58,7 +58,7 @@ Code coverage is generated using LLVM's source-based coverage instrumentation. T
 > [`quality/coverage.bazelrc`](coverage.bazelrc) (imported from the repository root `.bazelrc`).
 
 ```bash
-bazel coverage //...
+bazel coverage //... --test_tag_filters=unit
 ```
 
 To run coverage for a specific target:
