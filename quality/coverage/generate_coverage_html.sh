@@ -88,9 +88,14 @@ _tool_path() {
 }
 
 GENHTML="$(_tool_path genhtml)"
+LCOV="$(_tool_path lcov)"
 
 if [[ -z "$GENHTML" ]]; then
   echo "ERROR: 'genhtml' not found. Run via 'bazel run //quality/coverage:generate_coverage_html' or install 'lcov'." >&2
+  exit 1
+fi
+if [[ -z "$LCOV" ]]; then
+  echo "ERROR: 'lcov' not found. Run via 'bazel run //quality/coverage:generate_coverage_html' or install 'lcov'." >&2
   exit 1
 fi
 
@@ -100,20 +105,46 @@ lcov_lib="$(dirname "$(dirname "${GENHTML}")")/lib/lcov"
 if [[ -d "${lcov_lib}" ]]; then
   export PERL5LIB="${lcov_lib}${PERL5LIB:+:${PERL5LIB}}"
 fi
-# NOTE: "--ignore-errors category,inconsistent"
+
+# ---------------------------------------------------------------------------
+# Filter source files from LCOV data before generating HTML.
+# Excludes test infrastructure that should not count toward coverage metrics:
+#   - third_party/      external dependencies
+#   - gtest/googletest/ test framework internals
+#   - test/testing/tests/ test source directories
+#   - *mock*.h/cpp      mock headers (scattered across packages)
+#   - *_test.cpp        test translation units
+# ---------------------------------------------------------------------------
+LCOV_DAT_FILTERED="${TMPDIR:-/tmp}/coverage_report_filtered_$$.dat"
+"${LCOV}" --remove "${LCOV_DAT}" \
+  '*/third_party/*' \
+  '*/gtest/*' \
+  '*/googletest/*' \
+  '*/test/*' \
+  '*/testing/*' \
+  '*/tests/*' \
+  '*mock*.h' \
+  '*mock*.cpp' \
+  '*_test.cpp' \
+  --output-file "${LCOV_DAT_FILTERED}" \
+  --ignore-errors unused
+
+# NOTE: "--ignore-errors category,inconsistent,mismatch"
 # LLVM coverage writes per-process .profraw files that are merged during
 # bazel's post-processing step.  The merge can occasionally leave
 # inconsistent hit counts that genhtml rejects.  This flag tells genhtml to
 # silently skip those entries instead of aborting, coverage numbers are
 # slightly under-counted for affected translation units but the report still
-# generates.
-"${GENHTML}" "${LCOV_DAT}" \
+# generates.  `mismatch` tolerates malformed LCOV_EXCL markers.
+"${GENHTML}" "${LCOV_DAT_FILTERED}" \
   --output-directory "${OUTPUT_DIR}" \
   --show-details \
   --legend \
   --function-coverage \
   --branch-coverage \
-  --ignore-errors category,inconsistent
+  --filter line,branch,range,region,branch_region \
+  --rc no_exception_branch=1 \
+  --ignore-errors category,inconsistent,mismatch
 
 echo "Coverage report written to: ${OUTPUT_DIR}"
 
